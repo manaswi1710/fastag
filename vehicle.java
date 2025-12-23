@@ -11,6 +11,28 @@ public class vehicle {
         this.type = type;
     }
 
+ public void recharge(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            System.out.println("Recharge successful. New balance: ₹" + balance);
+        } else {
+            System.out.println("Invalid recharge amount.");
+        }
+    }
+
+     public double getBalance() {
+        return balance;
+    }
+
+    public String getNumber() {
+        return numberPlate;
+    }
+
+    public String getOwner() {
+        return ownerName;
+    }
+
+
     @Override
     public String toString() {
         return numberPlate + " | " + ownerName + " | Balance: ₹" + balance;
