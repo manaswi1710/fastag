@@ -6,36 +6,30 @@ public class FastagApp {
   private static final String VEHICLE_FILE = "vehicles.txt";
   private static final String TRANSACTION_FILE = "transactions.txt";
   public static Map<String, vehicle> vehicles = new HashMap<>();
-
+  public static  Map<String, Double> latestBalances = new HashMap<>();
   
 
   public static void main(String[] args) throws Exception {
       Scanner sc=new Scanner(System.in);
-        loadVehicles();
-        // Vehicles arriving at toll plaza
+        loadVehicles(); 
         String[] arrivingVehicles = {
             "KA01AB1234", "KA02XY5678", "KA03MN4321",
             "KA04PQ9876", "KA05XY1111", "KA06AB2222",
             "KA07CD3333", "KA08EF4444", "KA09GH5555", "KA10IJ6666"
         };
 
-       // ✅ Fixed toll for all vehicles
-
         Random rand = new Random();
-
-        // Simulate random arrival times, but fixed toll
+      
         for (String numberPlate : arrivingVehicles) {
             Thread t = new VehicleProcessor(numberPlate);
             t.start();
 
-            // Random delay between arrivals (0.5–2 seconds)
             Thread.sleep(500 + rand.nextInt(1500));
         }
-
+        saveVehicles();
       
 
 
-        saveVehicles();
 
         while (true) {
             System.out.println("\n--- FASTag Toll Booth ---");
@@ -93,19 +87,19 @@ public static void logRecharge(String vnum, double amount) {
 
     if (vehicles.containsKey(number)) {
       vehicle v = vehicles.get(number);
-      System.out.println("✅ Vehicle found: " + v.ownerName + " | Balance: ₹" + v.balance);
+      System.out.println(" Vehicle found: " + v.ownerName + " | Balance: ₹" + v.balance);
 
-      double toll = 80.0; // fixed toll amount
+      double toll = getTollRate(v.type); 
       if (v.balance >= toll) {
         v.balance -= toll;
-        System.out.println("💸 Toll deducted: ₹" + toll);
+        System.out.println("Toll deducted: ₹" + toll);
         System.out.println("New balance: ₹" + v.balance);
         logTransaction(v.numberPlate, toll, v.balance);
       } else {
-        System.out.println("❌ Insufficient balance! Please recharge FASTag.");
+        System.out.println("Insufficient balance! Please recharge FASTag.");
       }
     } else {
-      System.out.println("❌ Vehicle not found in database.");
+      System.out.println(" Vehicle not found in database.");
     }
   }
 
@@ -136,8 +130,17 @@ public static void logRecharge(String vnum, double amount) {
 
     try (BufferedReader br = new BufferedReader(new FileReader("transactions.txt"))) {
         String line;
-        String today = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date());
-
+        String today = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+      latestBalances.clear();
+try (BufferedReader vr = new BufferedReader(new FileReader("vehicles.txt"))) {
+    String vline;
+    while ((vline = vr.readLine()) != null) {
+        String[] vparts = vline.split("\\|");
+        if (vparts.length >= 3) {
+            latestBalances.put(vparts[0], Double.parseDouble(vparts[2]));
+        }
+    }
+}
         while ((line = br.readLine()) != null) {
             String[] parts = line.split("\\|");
             if (parts.length >= 4) {
@@ -145,9 +148,11 @@ public static void logRecharge(String vnum, double amount) {
                 if (dateTime.startsWith(today)) {
                     vehicleCount++;
                     totalRevenue += Double.parseDouble(parts[2]);
-                    double balance = Double.parseDouble(parts[3]);
-                    if (balance < 50) {
-                        lowBalanceVehicles.add(parts[1]);
+                    String vehicleno=parts[1];
+
+                    Double balance =latestBalances.get(vehicleno);
+                    if ( balance!=null && balance < 50  && !lowBalanceVehicles.contains(vehicleno)) {
+                        lowBalanceVehicles.add(vehicleno);
                     }
                 }
             }
@@ -187,7 +192,7 @@ public static void logRecharge(String vnum, double amount) {
       case "bike" -> 40.0;
       case "truck" -> 150.0;
       case "bus" -> 120.0;
-      default -> 100.0; // fallback
+      default -> 100.0; 
     };
   }
 
@@ -206,7 +211,7 @@ public static void logRecharge(String vnum, double amount) {
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(TRANSACTION_FILE, true))) {
       String time = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date());
       bw.write(time + "|" + numberPlate + "|" + amount + "|" + newBalance);
-      bw.newLine();
+      bw.newLine(); 
     } catch (IOException e) {
       System.out.println("Error logging transaction: " + e.getMessage());
     }

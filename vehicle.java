@@ -33,7 +33,6 @@ public class vehicle {
     }
 
 
-    @Override
     public String toString() {
         return numberPlate + " | " + ownerName + " | Balance: ₹" + balance;
     }
